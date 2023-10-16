@@ -20,7 +20,6 @@
                             <Setter Property="FontFamily" Value="BIZ UDPGothic"/>
                         </Style>
                     </StackPanel.Resources>
-                    <Button x:Name="Setting" Content="設定" Click="Setting_Button_Click"/>
                     <Button x:Name="Register" Content="景品登録" Click="Register_Button_Click"/>
                     <Button x:Name="Start" Content="スタート" Click="Start_Button_Click"/>
                 </StackPanel>

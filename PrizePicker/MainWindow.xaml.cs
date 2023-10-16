@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Media;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -16,10 +17,12 @@ namespace PrizePicker
     public partial class MainWindow : Window
     {
         private DispatcherTimer _timer;
-        private List<string> _imagePaths;
         private Random _random = new();
         private List<string> _remainingImages;
         private bool _isRouletteRunning = false;
+        private SoundPlayer _runSound = new(@"C:\Users\masak\Downloads\決定ボタンを押す15.wav");
+        private SoundPlayer _rouletteRunningSound = new(@"C:\Users\masak\Downloads\電子ルーレット回転中.wav");
+        private SoundPlayer _rouletteStopSound = new(@"C:\Users\masak\Downloads\電子ルーレット停止ボタンを押す.wav");
 
         public MainWindow()
         {
@@ -31,11 +34,6 @@ namespace PrizePicker
         }
 
         // Main
-        private void Setting_Button_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
         private void Register_Button_Click(object sender, RoutedEventArgs e)
         {
             MainPanel.Visibility = Visibility.Collapsed;
@@ -50,7 +48,6 @@ namespace PrizePicker
             InitializeRoulette();
         }
 
-        // アプリ起動時 or ルーレット開始時
         private void InitializeRoulette()
         {
             _remainingImages = GetAllPrizeImages(PrizePictureFolderTextBox.Text);
@@ -65,10 +62,8 @@ namespace PrizePicker
                 return new List<string>();
             }
 
-            string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".bmp", ".gif" }; // 他の形式も必要に応じて追加可能
-            var files = Directory.GetFiles(folderPath).Where(f => imageExtensions.Contains(Path.GetExtension(f).ToLower())).ToList();
-
-            return files;
+            string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".bmp", ".gif" };
+            return Directory.GetFiles(folderPath).Where(f => imageExtensions.Contains(Path.GetExtension(f).ToLower())).ToList();
         }
 
         private void StartRoulette()
@@ -79,10 +74,12 @@ namespace PrizePicker
             }
 
             _isRouletteRunning = true;
+            PlayRunSound();
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1.0 / 24); // 1/24秒ごと
             _timer.Tick += OnTimerTick;
             _timer.Start();
+            PlayRouletteRunningSound();
         }
 
         private void OnTimerTick(object sender, EventArgs e)
@@ -128,6 +125,7 @@ namespace PrizePicker
                 else if (_remainingImages.Count == 1)
                 {
                     // 1枚だけ残っている場合は、それを表示する
+                    PlayRunSound();
                     DisplayImage(_remainingImages[0]);
                     _remainingImages.Clear();
                     MessageLabel.Content = "ラストの景品です。クリックするとTOPに戻ります";
@@ -149,6 +147,7 @@ namespace PrizePicker
             }
 
             _isRouletteRunning = false;
+            _rouletteRunningSound.Stop();
         }
 
         private string SelectRandomImage(List<string> images)
@@ -168,6 +167,7 @@ namespace PrizePicker
                 bitmap.EndInit();
 
                 PrizeImage.Source = bitmap;
+                PlayRouletteStopSound();
             }
         }
 
@@ -177,6 +177,27 @@ namespace PrizePicker
 
             RoulettePanel.Visibility = Visibility.Collapsed;
             MainPanel.Visibility = Visibility.Visible;
+        }
+
+        private void ReturnTOP_Click(object sender, RoutedEventArgs e)
+        {
+            MainPanel.Visibility = Visibility.Visible;
+            RegisterPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void PlayRunSound()
+        {
+            _runSound.PlaySync();
+        }
+
+        private void PlayRouletteRunningSound()
+        {
+            _rouletteRunningSound.PlayLooping();
+        }
+
+        private void PlayRouletteStopSound()
+        {
+            _rouletteStopSound.Play();
         }
 
         // Register
@@ -199,12 +220,6 @@ namespace PrizePicker
                 Properties.Settings.Default.PrizePictureFolderPath = PrizePictureFolderTextBox.Text;
                 Properties.Settings.Default.Save();
             }
-        }
-
-        private void ReturnTOP_Click(object sender, RoutedEventArgs e)
-        {
-            MainPanel.Visibility = Visibility.Visible;
-            RegisterPanel.Visibility = Visibility.Collapsed;
         }
     }
 }
