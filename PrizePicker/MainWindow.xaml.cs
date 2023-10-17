@@ -44,6 +44,13 @@ namespace PrizePicker
 
         private void Start_Button_Click(object sender, RoutedEventArgs e)
         {
+            // 設定ファイルにも景品画像フォルダのパスにもパスが設定されていない場合は、エラーを表示して終了
+            if (string.IsNullOrEmpty(PrizePictureFolderTextBox.Text) || !Directory.Exists(PrizePictureFolderTextBox.Text))
+            {
+                MessageBox.Show("景品画像フォルダのパスが設定されていないか、パスが有効ではありません。景品画像ボタンから画像が格納されたフォルダを指定してください。", "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             MainPanel.Visibility = Visibility.Collapsed;
             RoulettePanel.Visibility = Visibility.Visible;
 
@@ -175,10 +182,14 @@ namespace PrizePicker
 
         private void ReturnToTop_Click(object sender, RoutedEventArgs e)
         {
-            StopRoulette();
+            var result = MessageBox.Show("本島に戻りますか？", "沖縄", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-            RoulettePanel.Visibility = Visibility.Collapsed;
-            MainPanel.Visibility = Visibility.Visible;
+            if (result == MessageBoxResult.Yes)
+            {
+                StopRoulette();
+                RoulettePanel.Visibility = Visibility.Collapsed;
+                MainPanel.Visibility = Visibility.Visible;
+            }
         }
 
         private void ReturnTOP_Click(object sender, RoutedEventArgs e)
