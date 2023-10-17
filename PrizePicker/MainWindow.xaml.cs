@@ -20,9 +20,11 @@ namespace PrizePicker
         private Random _random = new();
         private List<string> _remainingImages;
         private bool _isRouletteRunning = false;
-        private SoundPlayer _runSound = new(@"C:\Users\masak\Downloads\決定ボタンを押す15.wav");
-        private SoundPlayer _rouletteRunningSound = new(@"C:\Users\masak\Downloads\電子ルーレット回転中.wav");
-        private SoundPlayer _rouletteStopSound = new(@"C:\Users\masak\Downloads\電子ルーレット停止ボタンを押す.wav");
+
+        // リソースから音声ファイルを読み込む
+        private SoundPlayer _runSound = new(Properties.Resources.決定ボタンを押す15);
+        private SoundPlayer _rouletteRunningSound = new(Properties.Resources.電子ルーレット回転中);
+        private SoundPlayer _rouletteStopSound = new(Properties.Resources.電子ルーレット停止ボタンを押す);
 
         public MainWindow()
         {
