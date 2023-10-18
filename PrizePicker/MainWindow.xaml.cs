@@ -6,6 +6,7 @@ using System.Linq;
 using System.Media;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -18,7 +19,8 @@ namespace PrizePicker
     {
         private DispatcherTimer _timer;
         private Random _random = new();
-        private List<string> _remainingImages;
+        private List<ImageSource> _prizeImages;
+        private int _randomIndex;
         private bool _isRouletteRunning = false;
 
         // リソースから音声ファイルを読み込む
@@ -59,12 +61,12 @@ namespace PrizePicker
 
         private void InitializeRoulette()
         {
-            _remainingImages = GetAllPrizeImages(PrizePictureFolderTextBox.Text);
+            _prizeImages = GetPrizeImages(PrizePictureFolderTextBox.Text);
             MessageLabel.Content = "クリックしてください";
             StartRoulette();
         }
 
-        private List<string> GetAllPrizeImages(string folderPath)
+        private List<string> GetAllPrizeImagePaths(string folderPath)
         {
             if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
             {
@@ -75,9 +77,31 @@ namespace PrizePicker
             return Directory.GetFiles(folderPath).Where(f => imageExtensions.Contains(Path.GetExtension(f).ToLower())).ToList();
         }
 
+        private List<ImageSource> GetPrizeImages(string folderPath)
+        {
+            var imagePaths = GetAllPrizeImagePaths(folderPath);
+            var prizeImages = new List<ImageSource>();
+            foreach (var imagePath in imagePaths)
+            {
+                prizeImages.Add(LoadImage(imagePath));
+            }
+
+            return prizeImages;
+        }
+
+        private ImageSource LoadImage(string path)
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad; // これは画像をメモリにキャッシュするためのものです。
+            image.UriSource = new Uri(path);
+            image.EndInit();
+            return image;
+        }
+
         private void StartRoulette()
         {
-            if (_remainingImages.Count == 0)
+            if (_prizeImages.Count == 0)
             {
                 return;
             }
@@ -85,7 +109,7 @@ namespace PrizePicker
             _isRouletteRunning = true;
             PlayRunSound();
             _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1.0 / 24); // 1/24秒ごと
+            _timer.Interval = TimeSpan.FromSeconds(1.0 / 64); // 1/64秒ごと
             _timer.Tick += OnTimerTick;
             _timer.Start();
             PlayRouletteRunningSound();
@@ -93,10 +117,9 @@ namespace PrizePicker
 
         private void OnTimerTick(object sender, EventArgs e)
         {
-            var randomImagePath = _remainingImages[_random.Next(_remainingImages.Count)];
-
-            // Assuming you have an Image control named "RouletteImage"
-            PrizeImage.Source = new BitmapImage(new Uri(randomImagePath));
+            // ランダムに画像を表示
+            _randomIndex = _random.Next(_prizeImages.Count);
+            PrizeImage.Source = _prizeImages[_randomIndex];
         }
 
         private void PrizeImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -107,37 +130,39 @@ namespace PrizePicker
                 StopRoulette();
 
                 // ランダムに画像を選び、それをリストから削除
-                var selectedImage = SelectRandomImage(_remainingImages);
-                _remainingImages.Remove(selectedImage);
+                _randomIndex = _random.Next(_prizeImages.Count);
+                PrizeImage.Source = _prizeImages[_randomIndex];
+                _prizeImages.RemoveAt(_randomIndex);
 
-                DisplayImage(selectedImage);
-
-                if (_remainingImages.Count == 1)
+                if (_prizeImages.Count == 1)
                 {
                     MessageLabel.Content = "次がラストの景品です。クリックしてください";
+                    PlayRouletteStopSound();
                 }
                 else
                 {
                     MessageLabel.Content = "クリックしてください";
+                    PlayRouletteStopSound();
                 }
             }
             else
             {
                 // ルーレットが動いていない場合は、ルーレットを開始する
-                if (_remainingImages.Count == 0)
+                if (_prizeImages.Count == 0)
                 {
                     // すべての画像が表示された後
                     RoulettePanel.Visibility = Visibility.Collapsed;
                     MainPanel.Visibility = Visibility.Visible;
                     return;
                 }
-                else if (_remainingImages.Count == 1)
+                else if (_prizeImages.Count == 1)
                 {
                     // 1枚だけ残っている場合は、それを表示する
                     PlayRunSound();
-                    DisplayImage(_remainingImages[0]);
-                    _remainingImages.Clear();
+                    PrizeImage.Source = _prizeImages[0];
+                    _prizeImages.Clear();
                     MessageLabel.Content = "ラストの景品です。クリックするとTOPに戻ります";
+                    PlayRouletteStopSound();
                 }
                 else
                 {
@@ -157,27 +182,6 @@ namespace PrizePicker
 
             _isRouletteRunning = false;
             _rouletteRunningSound.Stop();
-        }
-
-        private string SelectRandomImage(List<string> images)
-        {
-            var random = new Random();
-            var randomIndex = random.Next(images.Count);
-            return images[randomIndex];
-        }
-
-        private void DisplayImage(string imagePath)
-        {
-            if (File.Exists(imagePath))
-            {
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
-                bitmap.EndInit();
-
-                PrizeImage.Source = bitmap;
-                PlayRouletteStopSound();
-            }
         }
 
         private void ReturnToTop_Click(object sender, RoutedEventArgs e)
